@@ -43,6 +43,12 @@ static int entry_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
     return 0;
 }
 
+static void
+ip_to_str (int ip, char *buf)
+{
+    sprintf (buf, "%d.%d.%d.%d", ip >> 24, (ip & 0x00FF0000) >> 16,
+                        (ip & 0x0000FF00) >> 8, (ip & 0x000000FF));
+}
 /*
  * Return-probe handler: Log the return value and duration. Duration may turn
  * out to be zero consistently, depending upon the granularity of time
@@ -57,6 +63,7 @@ static int ret_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
     struct my_data *data;
     int fd;
     struct inet_sock *inet;
+    char   buf[100];
 
     if (retval) {
         goto out;
@@ -75,8 +82,9 @@ static int ret_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
     inet = (struct inet_sock*)sk;
 
     if (inet->inet_dport)
-        printk(KERN_INFO "task[%s] pid[%d] fd[%d] from localport[%d] -> dest[%d:%d]",
-                current->comm, current->pid, fd, inet->inet_sport, inet->inet_daddr, inet->inet_dport);
+        ip_to_str(htonl(inet->inet_daddr), buf);
+        printk(KERN_INFO "task[%s] pid[%d] fd[%d] from localport[%d] -> dest[%s:%d]",
+                current->comm, current->pid, fd, htons(inet->inet_sport), buf, htons(inet->inet_dport));
 
 out:
     return 0;
