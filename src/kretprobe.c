@@ -62,8 +62,8 @@ static int ret_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
     struct sock *sk;
     struct my_data *data;
     int fd;
-    struct inet_sock *inet;
-    char   buf[100];
+    char   source[100];
+    char   dest[100];
 
     if (retval) {
         goto out;
@@ -79,12 +79,22 @@ static int ret_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
 
     sk = sock->sk;
 
-    inet = (struct inet_sock*)sk;
-
-    if (inet->inet_dport)
-        ip_to_str(htonl(inet->inet_daddr), buf);
-        printk(KERN_INFO "task[%s] pid[%d] fd[%d] from localport[%d] -> dest[%s:%d]",
-                current->comm, current->pid, fd, htons(inet->inet_sport), buf, htons(inet->inet_dport));
+    if (sk->sk_dport)
+        if (!sk->sk_ipv6only) {   /* ipv4 */
+            ip_to_str(htonl(sk->sk_rcv_saddr), source);
+            ip_to_str(htonl(sk->sk_daddr), dest);
+            printk(KERN_INFO "task[%s] pid[%d] fd[%d] family[%d] from source[%s:%d] -> dest[%s:%d]",
+                    current->comm,
+                    current->pid,
+                    fd,
+                    sk->sk_family,
+                    source,
+                    htons(sk->sk_num),
+                    dest,
+                    htons(sk->sk_dport));
+        } else {                 /* ipv6 */
+            /*to do*/
+        }
 
 out:
     return 0;
