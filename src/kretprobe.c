@@ -44,10 +44,13 @@ static int entry_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
 }
 
 static void
-ip_to_str (int ip, char *buf)
+long2ip (long ip, char *buf)
 {
-    sprintf (buf, "%d.%d.%d.%d", ip >> 24, (ip & 0x00FF0000) >> 16,
-                        (ip & 0x0000FF00) >> 8, (ip & 0x000000FF));
+    sprintf (buf, "%ld.%ld.%ld.%ld", 
+                ((0xFF  << 24) & ip) >> 24, 
+                ((0xFF << 16) & ip) >> 16,
+                ((0xFF << 8) & ip) >> 8, 
+                ip & 0xFF);
 }
 /*
  * Return-probe handler: Log the return value and duration. Duration may turn
@@ -81,8 +84,8 @@ static int ret_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
 
     if (sk->sk_dport)
         if (!sk->sk_ipv6only) {   /* ipv4 */
-            ip_to_str(htonl(sk->sk_rcv_saddr), source);
-            ip_to_str(htonl(sk->sk_daddr), dest);
+            long2ip(htonl(sk->sk_rcv_saddr), source);
+            long2ip(htonl(sk->sk_daddr), dest);
             printk(KERN_INFO "task[%s] pid[%d] fd[%d] family[%d] from source[%s:%d] -> dest[%s:%d]",
                     current->comm,
                     current->pid,
